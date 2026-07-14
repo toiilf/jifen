@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>房间号：<%= title %> - 计分系统 - 在线计分统计工具</title>
+    <meta name="keywords" content="计分系统,打牌计分,计分管理,游戏计分,在线计分,牌局计分">
+<meta name="description" content="计分系统 - 一款简单易用的在线计分工具，支持创建房间、多人计分、转让积分、历史记录查询，适合打牌、麻将、游戏等场景使用。">
+<meta name="author" content="计分系统">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="计分系统 - 在线计分统计工具">
+<meta property="og:description" content="简单易用的在线计分工具，支持多人房间、积分转让、历史记录。">
+<meta property="og:type" content="website">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 12px;
+        }
+        
+        .page { max-width: 600px; margin: 0 auto; }
+        
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 18px; font-weight: 700; color: #333;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
+        }
+        
+        .header .count {
+            background: #667eea; color: white;
+            padding: 6px 14px; border-radius: 20px;
+            font-size: 14px; font-weight: 700; margin: 0 8px; white-space: nowrap;
+        }
+        
+        .header .btn-back {
+            background: #667eea; color: white; border: none;
+            padding: 8px 16px; border-radius: 20px;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            white-space: nowrap; text-decoration: none;
+        }
+        
+        .my-card {
+            background: white; border-radius: 16px; padding: 16px 18px;
+            margin-bottom: 12px; display: flex; align-items: center; gap: 14px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1); border: 2px solid #667eea;
+        }
+        
+        .my-card .avatar {
+            width: 46px; height: 46px; min-width: 46px; border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2); color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; font-weight: 700;
+        }
+        
+        .my-card .my-info { flex: 1; }
+        .my-card .name { font-size: 15px; font-weight: 700; color: #333; }
+        .my-card .label { font-size: 11px; color: #999; }
+        .my-card .score { font-size: 28px; font-weight: 800; color: #667eea; text-align: right; }
+        .my-card .score span { font-size: 13px; font-weight: 500; color: #999; }
+        .my-card .owner-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #ffc107, #ff9800);
+            color: white; padding: 2px 8px; border-radius: 10px;
+            font-size: 10px; font-weight: 600; margin-left: 6px;
+        }
+        
+        .section-label {
+            color: white; font-size: 16px; font-weight: 700;
+            margin: 16px 0 10px; text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        
+        .players { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+        
+        .player {
+            background: white; border-radius: 16px; padding: 18px 20px;
+            display: flex; align-items: center; gap: 14px;
+            cursor: pointer; transition: all 0.15s;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+        .player:active { transform: scale(0.98); }
+        
+        .player.selected {
+            border: 3px solid #ff6b6b;
+            box-shadow: 0 0 20px rgba(255,107,107,0.3);
+            animation: pulse 1.2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 15px rgba(255,107,107,0.3); }
+            50% { box-shadow: 0 0 25px rgba(255,107,107,0.5); }
+        }
+        
+        .player .p-avatar {
+            width: 50px; height: 50px; min-width: 50px; border-radius: 50%;
+            background: linear-gradient(135deg, #a8e6cf, #88d8b0);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; font-weight: 700; color: #3d7a5c;
+        }
+        .player.selected .p-avatar { background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: white; }
+        .player .p-info { flex: 1; }
+        .player .p-name { font-size: 16px; font-weight: 700; color: #333; }
+        .player .p-hint { font-size: 12px; color: #bbb; margin-top: 2px; }
+        .player.selected .p-hint { color: #ff6b6b; font-weight: 600; }
+        .player .p-score { font-size: 22px; font-weight: 800; color: #667eea; white-space: nowrap; }
+        .player .p-score span { font-size: 13px; font-weight: 500; color: #999; }
+        .player .owner-tag { background: #fff3cd; color: #856404; padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 600; }
+        
+        .empty { color: rgba(255,255,255,0.7); text-align: center; padding: 30px; font-size: 15px; }
+        
+        .records {
+            background: white; border-radius: 20px; padding: 16px;
+            margin-bottom: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .records h3 { font-size: 16px; color: #333; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 2px solid #f0f0f0; }
+        
+        .record { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f8f8f8; }
+        .record:last-child { border-bottom: none; }
+        .record .r-from { color: #ff6b6b; font-weight: 600; }
+        .record .r-to { color: #2ed573; font-weight: 600; }
+        .record .r-time { font-size: 12px; color: #bbb; }
+        .record .r-amount { font-weight: 700; font-size: 16px; color: #667eea; }
+        
+        .share-buttons { display: flex; gap: 10px; }
+        .share-buttons button {
+            flex: 1; padding: 12px; border: none; border-radius: 12px;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+        }
+        .btn-copy-link { background: #667eea; color: white; }
+        .btn-qrcode { background: #ffc107; color: #333; }
+        
+        .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 98; display: none; }
+        .overlay.show { display: block; }
+        
+        .panel {
+            position: fixed; bottom: 0; left: 0; right: 0; background: white;
+            border-radius: 20px 20px 0 0; padding: 16px 14px 20px;
+            z-index: 99; box-shadow: 0 -5px 30px rgba(0,0,0,0.2);
+            transform: translateY(100%); transition: transform 0.3s ease;
+            max-width: 600px; margin: 0 auto;
+        }
+        .panel.show { transform: translateY(0); }
+        .panel h3 { text-align: center; font-size: 16px; margin-bottom: 12px; color: #333; }
+        .panel .target { color: #ff6b6b; font-weight: 700; }
+        .panel .row { display: flex; gap: 8px; align-items: center; }
+        .panel input {
+            flex: 1; min-width: 0; padding: 12px 14px;
+            border: 2px solid #e1e8ed; border-radius: 12px;
+            font-size: 18px; text-align: center; font-weight: 700; outline: none;
+        }
+        .panel input:focus { border-color: #ff6b6b; }
+        .panel .btn-ok {
+            background: #ff6b6b; color: white; border: none;
+            padding: 12px 20px; border-radius: 12px;
+            font-size: 15px; font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+        }
+        .panel .btn-cancel {
+            width: 100%; margin-top: 8px; padding: 12px;
+            background: #f0f0f0; border: none; border-radius: 12px;
+            font-size: 15px; color: #666; cursor: pointer; font-weight: 600;
+        }
+        
+        .modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 200;
+            display: none; justify-content: center; align-items: center;
+        }
+        .modal.show { display: flex; }
+        
+        .modal-content {
+            background: white; border-radius: 20px; padding: 24px 20px;
+            width: 90%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .modal-content h3 { font-size: 20px; margin-bottom: 18px; text-align: center; color: #333; }
+        .modal-content .form-group { margin-bottom: 14px; }
+        .modal-content label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; font-weight: 600; }
+        .modal-content input {
+            width: 100%; padding: 12px 14px; border: 2px solid #e1e8ed;
+            border-radius: 12px; font-size: 16px; outline: none;
+        }
+        .modal-content input:focus { border-color: #667eea; }
+        .modal-content .btn {
+            width: 100%; padding: 14px; border: none; border-radius: 12px;
+            font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 6px;
+        }
+        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .btn-secondary { background: #f0f0f0; color: #666; }
+        .btn-save { background: #28a745; color: white; }
+        
+        @media (max-width: 360px) {
+            .panel { padding: 14px 10px 16px; }
+            .panel h3 { font-size: 15px; }
+            .panel input { font-size: 16px; padding: 10px 12px; }
+            .panel .btn-ok { padding: 10px 16px; font-size: 14px; }
+            .panel .btn-cancel { padding: 10px; font-size: 14px; }
+        }
+        
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+            .panel { padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <h1>房间：<%= room.room_name %></h1>
+            <span class="count"><%= otherPlayers.length + 1 %>/<%= room.max_players %>人</span>
+            <a href="/lobby" class="btn-back">返回大厅</a>
+        </div>
+        
+        <div class="my-card">
+            <div class="avatar"><%= myPlayer.nickname ? myPlayer.nickname.charAt(0).toUpperCase() : '我' %></div>
+            <div class="my-info">
+                <div class="name">
+                    <%= myPlayer.nickname || user.nickname %> (我)
+                    <% if (room.creator_id === userId) { %><span class="owner-badge">👑 房主</span><% } %>
+                </div>
+                <div class="label">我的积分</div>
+            </div>
+            <div class="score"><%= myPlayer.current_score || 0 %> <span>分</span></div>
+        </div>
+        
+        <div class="section-label">👥 点击下方玩家转让积分</div>
+        <div class="players" id="playersList">
+            <% if (otherPlayers.length > 0) { %>
+                <% otherPlayers.forEach(function(p) { %>
+                    <div class="player" id="player-<%= p.user_id %>" onclick="selectPlayer(<%= p.user_id %>, '<%= p.nickname.replace(/'/g, "\\'") %>')">
+                        <div class="p-avatar"><%= p.nickname.charAt(0).toUpperCase() %></div>
+                        <div class="p-info">
+                            <div class="p-name">
+                                <%= p.nickname %>
+                                <% if (p.user_id === room.creator_id) { %><span class="owner-tag">👑 房主</span><% } %>
+                            </div>
+                            <div class="p-hint">点击转让积分</div>
+                        </div>
+                        <div class="p-score"><%= p.current_score || 0 %> <span>分</span></div>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <div class="empty">等待其他玩家加入...</div>
+            <% } %>
+        </div>
+        
+        <div class="records">
+            <h3>📋 转让记录</h3>
+            <div id="transferHistory">
+                <% if (transfers && transfers.length > 0) { %>
+                    <% transfers.forEach(function(t) { %>
+                        <div class="record">
+                            <div>
+                                <span class="r-from"><%= t.from_nickname %></span> → <span class="r-to"><%= t.to_nickname %></span>
+                                <div class="r-time"><%= moment(t.created_at).tz('Asia/Shanghai').format('HH:mm:ss') %></div>
+                            </div>
+                            <div class="r-amount"><%= t.amount %> 分</div>
+                        </div>
+                    <% }); %>
+                <% } else { %>
+                    <div class="empty" style="color:#999;">暂无转让记录</div>
+                <% } %>
+            </div>
+        </div>
+        
+        <div class="records">
+            <h3>📤 邀请好友</h3>
+            <div class="share-buttons">
+                <button class="btn-copy-link" onclick="copyShareLink()">🔗 复制链接</button>
+                <button class="btn-qrcode" onclick="showQRCode()">📱 二维码</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="overlay" id="overlay" onclick="cancelTransfer()"></div>
+    
+    <div class="panel" id="panel">
+        <h3>💸 转让给 <span class="target" id="targetName"></span></h3>
+        <div class="row">
+            <input type="number" id="amount" min="1" placeholder="输入金额" onkeyup="if(event.key==='Enter')doTransfer()">
+            <button class="btn-ok" onclick="doTransfer()">确认</button>
+        </div>
+        <button class="btn-cancel" onclick="cancelTransfer()">取消</button>
+    </div>
+    
+    <% if (showGuide) { %>
+    <div class="modal show" id="editModal">
+        <div class="modal-content">
+            <h3>✏️ 修改资料</h3>
+            <p style="text-align:center;font-size:13px;color:#999;margin-bottom:16px;">系统已为您生成账号，建议修改</p>
+            <div class="form-group">
+                <label>昵称</label>
+                <input type="text" id="newNickname" value="<%= user.nickname %>" maxlength="20">
+            </div>
+            <div class="form-group">
+                <label>密码（留空不修改）</label>
+                <input type="password" id="newPassword" placeholder="123456" minlength="6">
+            </div>
+            <button class="btn btn-save" onclick="saveProfile()">💾 保存</button>
+            <button class="btn btn-secondary" onclick="closeEditModal()" style="margin-top:6px;">跳过</button>
+        </div>
+    </div>
+    <% } %>
+    
+    <script>
+        var roomId = <%= room.id %>;
+        var userId = <%= userId %>;
+        var selectedId = null;
+        var ws = null;
+        
+        function connectWS() {
+            var p = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(p + '//' + location.host);
+            ws.onopen = function() { ws.send(JSON.stringify({ type: 'join_room', room_id: roomId, user_id: userId })); };
+            ws.onmessage = function() { refreshData(); };
+            ws.onclose = function() { setTimeout(connectWS, 3000); };
+        }
+        
+        function selectPlayer(id, name) {
+            selectedId = id;
+            document.getElementById('targetName').textContent = name;
+            document.getElementById('amount').value = '';
+            document.getElementById('overlay').classList.add('show');
+            document.getElementById('panel').classList.add('show');
+            var cards = document.querySelectorAll('.player');
+            for (var i = 0; i < cards.length; i++) {
+                cards[i].classList.remove('selected');
+                if (cards[i].id === 'player-' + id) cards[i].classList.add('selected');
+            }
+            setTimeout(function() { document.getElementById('amount').focus(); }, 300);
+        }
+        
+        function cancelTransfer() {
+            selectedId = null;
+            document.getElementById('overlay').classList.remove('show');
+            document.getElementById('panel').classList.remove('show');
+            var cards = document.querySelectorAll('.player');
+            for (var i = 0; i < cards.length; i++) cards[i].classList.remove('selected');
+        }
+        
+        function doTransfer() {
+            if (!selectedId) return;
+            var amount = parseInt(document.getElementById('amount').value);
+            if (!amount || amount <= 0) { alert('请输入有效的转让金额'); return; }
+            fetch('/api/transfer', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ room_id: roomId, to_user_id: selectedId, amount: amount })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) { if (d.success) { cancelTransfer(); refreshData(); } else alert(d.message); });
+        }
+        
+        function refreshData() {
+            fetch('/api/room/' + roomId).then(function(r) { return r.json(); }).then(function(d) {
+                if (!d.success) return;
+                for (var i = 0; i < d.players.length; i++) {
+                    if (d.players[i].user_id === userId) {
+                        document.querySelector('.my-card .score').innerHTML = (d.players[i].current_score || 0) + ' <span>分</span>';
+                        break;
+                    }
+                }
+                var list = document.getElementById('playersList');
+                var html = '';
+                for (var i = 0; i < d.players.length; i++) {
+                    var p = d.players[i];
+                    if (p.user_id === userId) continue;
+                    html += '<div class="player" id="player-' + p.user_id + '" onclick="selectPlayer(' + p.user_id + ', \'' + p.nickname.replace(/'/g, "\\'") + '\')"><div class="p-avatar">' + p.nickname.charAt(0).toUpperCase() + '</div><div class="p-info"><div class="p-name">' + p.nickname;
+                    if (p.user_id === d.room.creator_id) html += ' <span class="owner-tag">👑 房主</span>';
+                    html += '</div><div class="p-hint">点击转让积分</div></div><div class="p-score">' + (p.current_score || 0) + ' <span>分</span></div></div>';
+                }
+                if (!html) html = '<div class="empty">等待其他玩家加入...</div>';
+                list.innerHTML = html;
+                
+                var rec = document.getElementById('transferHistory');
+                if (!d.transfers || d.transfers.length === 0) {
+                    rec.innerHTML = '<div class="empty" style="color:#999;">暂无转让记录</div>';
+                } else {
+                    var rh = '';
+                    for (var j = 0; j < d.transfers.length; j++) {
+                        var t = d.transfers[j];
+                        var time = new Date(t.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                        rh += '<div class="record"><div><span class="r-from">' + t.from_nickname + '</span> → <span class="r-to">' + t.to_nickname + '</span><div class="r-time">' + time + '</div></div><div class="r-amount">' + t.amount + ' 分</div></div>';
+                    }
+                    rec.innerHTML = rh;
+                }
+            });
+        }
+        
+        function copyShareLink() {
+            var shareUrl = location.origin + '/join-room/' + roomId;
+            var tempInput = document.createElement('input');
+            tempInput.value = shareUrl;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try { document.execCommand('copy'); alert('链接已复制！\n' + shareUrl); }
+            catch (err) { prompt('请手动复制以下链接：', shareUrl); }
+            document.body.removeChild(tempInput);
+        }
+        
+        function showQRCode() {
+            var shareUrl = location.origin + '/join-room/' + roomId;
+            var qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(shareUrl);
+            var overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;justify-content:center;align-items:center;';
+            overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+            var qrBox = document.createElement('div');
+            qrBox.style.cssText = 'background:white;border-radius:20px;padding:24px;text-align:center;max-width:300px;width:90%;';
+            qrBox.innerHTML = '<h3 style="margin-bottom:16px;font-size:16px;">📱 扫码加入房间</h3><img src="' + qrApiUrl + '" alt="二维码" style="width:200px;height:200px;border-radius:12px;"><p style="margin-top:12px;font-size:12px;color:#999;word-break:break-all;">' + shareUrl + '</p><button onclick="this.parentElement.parentElement.remove()" style="margin-top:12px;padding:10px 30px;background:#f0f0f0;border:none;border-radius:10px;font-size:14px;cursor:pointer;">关闭</button>';
+            overlay.appendChild(qrBox);
+            document.body.appendChild(overlay);
+        }
+        
+        function closeEditModal() { document.getElementById('editModal').classList.remove('show'); }
+        
+        function saveProfile() {
+            var nickname = document.getElementById('newNickname').value.trim();
+            var password = document.getElementById('newPassword').value;
+            if (!nickname) { alert('昵称不能为空'); return; }
+            if (nickname.length < 2) { alert('昵称至少2个字符'); return; }
+            if (password && password.length < 6) { alert('至少6个字符'); return; }
+            
+            fetch('/profile/update-all', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nickname: nickname, password: password })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.success) { alert('修改成功！'); closeEditModal(); location.reload(); }
+                else alert(d.message);
+            });
+        }
+        
+        connectWS();
+        setInterval(refreshData, 5000);
+    </script>
+</body>
+</html>

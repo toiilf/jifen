@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>管理后台 - 计分系统 - 在线计分统计工具</title>
+    <meta name="keywords" content="计分系统,打牌计分,计分管理,游戏计分,在线计分,牌局计分">
+<meta name="description" content="计分系统 - 一款简单易用的在线计分工具，支持创建房间、多人计分、转让积分、历史记录查询，适合打牌、麻将、游戏等场景使用。">
+<meta name="author" content="计分系统">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="计分系统 - 在线计分统计工具">
+<meta property="og:description" content="简单易用的在线计分工具，支持多人房间、积分转让、历史记录。">
+<meta property="og:type" content="website">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 12px;
+        }
+        
+        .page { max-width: 600px; margin: 0 auto; }
+        
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 14px 20px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .header .logo {
+            font-size: 20px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header .user-row { display: flex; align-items: center; gap: 14px; }
+        .header .user-row a { text-decoration: none; font-size: 13px; font-weight: 500; }
+        
+        /* 统计卡片 - 可点击切换 */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .stat-card {
+            background: rgba(255,255,255,0.85);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.15s;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            border: 2px solid transparent;
+        }
+        
+        .stat-card:active { transform: scale(0.96); }
+        
+        .stat-card.active {
+            background: white;
+            border-color: #667eea;
+            box-shadow: 0 4px 20px rgba(102,126,234,0.3);
+        }
+        
+        .stat-value { font-size: 24px; font-weight: 800; color: #667eea; }
+        .stat-label { font-size: 11px; color: #999; margin-top: 4px; font-weight: 500; }
+        .stat-card.active .stat-label { color: #667eea; }
+        
+        /* 操作按钮 */
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .btn-add {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .search-box {
+            flex: 1;
+            margin-left: 10px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 8px 14px;
+            border: 2px solid #e1e8ed;
+            border-radius: 12px;
+            font-size: 13px;
+            outline: none;
+            background: rgba(255,255,255,0.95);
+        }
+        
+        /* 列表卡片 */
+        .list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .list-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 14px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .list-card .card-icon {
+            width: 42px; height: 42px; min-width: 42px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+        }
+        
+        .card-icon.user { background: #e8f4fd; }
+        .card-icon.room { background: #e8fde8; }
+        .card-icon.admin { background: #fde8e8; }
+        
+        .list-card .card-info { flex: 1; min-width: 0; }
+        .list-card .card-title { font-size: 14px; font-weight: 600; color: #333; }
+        .list-card .card-sub { font-size: 11px; color: #999; margin-top: 2px; }
+        
+        .list-card .card-badge {
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-waiting { background: #d4edda; color: #155724; }
+        .badge-playing { background: #fff3cd; color: #856404; }
+        .badge-finished { background: #f0f0f0; color: #999; }
+        
+        .list-card .card-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        .btn-sm {
+            padding: 5px 12px;
+            border-radius: 10px;
+            border: none;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        
+        .btn-edit { background: #667eea; color: white; }
+        .btn-delete { background: #ff4757; color: white; }
+        .btn-close { background: #ffc107; color: #333; }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: rgba(255,255,255,0.7);
+            font-size: 14px;
+        }
+        
+        /* 弹窗 */
+        .modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 100;
+            display: none; justify-content: center; align-items: center;
+        }
+        .modal.show { display: flex; }
+        
+        .modal-content {
+            background: white; border-radius: 20px; padding: 24px 20px;
+            width: 90%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .modal-content h3 { font-size: 18px; margin-bottom: 16px; text-align: center; color: #333; }
+        .modal-content .form-group { margin-bottom: 14px; }
+        .modal-content label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; font-weight: 600; }
+        .modal-content input {
+            width: 100%; padding: 12px 14px; border: 2px solid #e1e8ed;
+            border-radius: 12px; font-size: 16px; outline: none;
+        }
+        .modal-content input:focus { border-color: #667eea; }
+        
+        .modal-content .btn {
+            width: 100%; padding: 14px; border: none; border-radius: 12px;
+            font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 6px;
+        }
+        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .btn-secondary { background: #f0f0f0; color: #666; }
+        
+        .toast {
+            position: fixed; top: 20px; right: 20px;
+            padding: 12px 20px; border-radius: 10px;
+            color: white; font-weight: 600; z-index: 200;
+            display: none;
+        }
+        .toast-success { background: #28a745; display: block; }
+        .toast-error { background: #dc3545; display: block; }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <span class="logo">⚙️ 管理后台</span>
+            <div class="user-row">
+                <a href="/lobby" style="color:#999;">🏠 大厅</a>
+                <a href="/admin/logout" style="color:#ff4757;">退出</a>
+            </div>
+        </div>
+        
+        <!-- 统计卡片 -->
+        <div class="stats">
+            <div class="stat-card active" onclick="switchTab('users')" id="tabBtn-users">
+                <div class="stat-value"><%= stats.total_users %></div>
+                <div class="stat-label">👥 用户</div>
+            </div>
+            <div class="stat-card" onclick="switchTab('rooms')" id="tabBtn-rooms">
+                <div class="stat-value"><%= stats.total_rooms %></div>
+                <div class="stat-label">🏠 房间</div>
+            </div>
+            <div class="stat-card" onclick="switchTab('admins')" id="tabBtn-admins">
+                <div class="stat-value"><%= stats.admin_count %></div>
+                <div class="stat-label">🔒 管理员</div>
+            </div>
+        </div>
+        
+        <!-- 用户列表 -->
+        <div id="tab-users" class="tab-content" style="display:block;">
+            <div class="action-bar">
+                <button class="btn-add" onclick="showAddUserModal()">➕ 添加</button>
+                <div class="search-box">
+                    <input type="text" id="userSearch" placeholder="搜索用户..." onkeyup="searchUsers()">
+                </div>
+            </div>
+            <div class="list" id="userList">
+                <% users.forEach(function(u) { %>
+                    <div class="list-card" data-username="<%= u.username %>">
+                        <div class="card-icon user">👤</div>
+                        <div class="card-info">
+                            <div class="card-title"><%= u.username %></div>
+                            <div class="card-sub">场次：<%= u.total_games %> · 胜场：<%= u.wins %></div>
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn-sm btn-edit" onclick="editUser(<%= u.id %>, '<%= u.username %>')">编辑</button>
+                            <button class="btn-sm btn-delete" onclick="deleteUser(<%= u.id %>, '<%= u.username %>')">删除</button>
+                        </div>
+                    </div>
+                <% }); %>
+                <% if (users.length === 0) { %>
+                    <div class="empty-state">暂无用户</div>
+                <% } %>
+            </div>
+        </div>
+        
+        <!-- 房间列表 -->
+        <div id="tab-rooms" class="tab-content" style="display:none;">
+            <div class="list" id="roomList">
+                <% rooms.forEach(function(r) { %>
+                    <div class="list-card">
+                        <div class="card-icon room">🏠</div>
+                        <div class="card-info">
+                            <div class="card-title"><%= r.room_name %> <span style="font-size:11px;color:#999;">#<%= r.id %></span></div>
+                            <div class="card-sub">房主：<%= r.creator_name %> · <%= r.player_count %>/<%= r.max_players %>人</div>
+                        </div>
+                        <% if (r.status === 'waiting') { %>
+                            <span class="card-badge badge-waiting">等待中</span>
+                        <% } else if (r.status === 'playing') { %>
+                            <span class="card-badge badge-playing">游戏中</span>
+                        <% } else { %>
+                            <span class="card-badge badge-finished">已结束</span>
+                        <% } %>
+                        <div class="card-actions">
+                            <% if (r.status !== 'finished') { %>
+                                <button class="btn-sm btn-close" onclick="closeRoom(<%= r.id %>, '<%= r.room_name %>')">关闭</button>
+                            <% } %>
+                            <button class="btn-sm btn-delete" onclick="deleteRoom(<%= r.id %>, '<%= r.room_name %>')">删除</button>
+                        </div>
+                    </div>
+                <% }); %>
+                <% if (rooms.length === 0) { %>
+                    <div class="empty-state">暂无房间</div>
+                <% } %>
+            </div>
+        </div>
+        
+        <!-- 管理员列表 -->
+        <div id="tab-admins" class="tab-content" style="display:none;">
+            <div class="action-bar">
+                <button class="btn-add" onclick="showAddAdminModal()">➕ 添加</button>
+                <div style="flex:1;"></div>
+            </div>
+            <div class="list" id="adminList">
+                <% admins.forEach(function(a) { %>
+                    <div class="list-card">
+                        <div class="card-icon admin">🔒</div>
+                        <div class="card-info">
+                            <div class="card-title"><%= a.username %></div>
+                            <div class="card-sub">创建：<%= moment(a.created_at).format('YYYY-MM-DD HH:mm') %></div>
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn-sm btn-edit" onclick="editAdmin(<%= a.id %>, '<%= a.username %>')">改密</button>
+                            <button class="btn-sm btn-delete" onclick="deleteAdmin(<%= a.id %>, '<%= a.username %>')">删除</button>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 弹窗 -->
+    <div class="modal" id="userModal">
+        <div class="modal-content">
+            <h3 id="userModalTitle">添加用户</h3>
+            <input type="hidden" id="userId">
+            <div class="form-group"><label>用户名</label><input type="text" id="userUsername" required></div>
+            <div class="form-group" id="userPwdGroup"><label>密码（留空不修改）</label><input type="password" id="userPassword" minlength="6"></div>
+            <button class="btn btn-primary" onclick="saveUser()">保存</button>
+            <button class="btn btn-secondary" onclick="closeModal('userModal')">取消</button>
+        </div>
+    </div>
+    
+    <div class="modal" id="adminModal">
+        <div class="modal-content">
+            <h3 id="adminModalTitle">添加管理员</h3>
+            <input type="hidden" id="adminId">
+            <div class="form-group"><label>用户名</label><input type="text" id="adminUsername" required></div>
+            <div class="form-group"><label id="adminPwdLabel">密码</label><input type="password" id="adminPassword" required minlength="6"></div>
+            <button class="btn btn-primary" onclick="saveAdmin()">保存</button>
+            <button class="btn btn-secondary" onclick="closeModal('adminModal')">取消</button>
+        </div>
+    </div>
+    
+    <div id="toast" class="toast"></div>
+    
+    <script>
+        var currentTab = 'users';
+        
+        function switchTab(name) {
+            currentTab = name;
+            document.querySelectorAll('.tab-content').forEach(function(t) { t.style.display = 'none'; });
+            document.querySelectorAll('.stat-card').forEach(function(c) { c.classList.remove('active'); });
+            document.getElementById('tab-' + name).style.display = 'block';
+            document.getElementById('tabBtn-' + name).classList.add('active');
+            if (name === 'users') loadUsers();
+            else if (name === 'rooms') loadRooms();
+            else if (name === 'admins') loadAdmins();
+        }
+        
+        function showToast(msg, type) {
+            var t = document.getElementById('toast');
+            t.textContent = msg; t.className = 'toast toast-' + type;
+            setTimeout(function() { t.className = 'toast'; }, 2000);
+        }
+        
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
+            if (id === 'adminModal') document.getElementById('adminUsername').disabled = false;
+        }
+        
+        // === 用户 ===
+        function showAddUserModal() {
+            document.getElementById('userModalTitle').textContent = '添加用户';
+            document.getElementById('userId').value = '';
+            document.getElementById('userUsername').value = '';
+            document.getElementById('userPassword').value = '';
+            document.getElementById('userPwdGroup').style.display = 'block';
+            document.getElementById('userPassword').required = true;
+            document.getElementById('userModal').classList.add('show');
+        }
+        
+        function editUser(id, name) {
+            document.getElementById('userModalTitle').textContent = '编辑用户';
+            document.getElementById('userId').value = id;
+            document.getElementById('userUsername').value = name;
+            document.getElementById('userPassword').value = '';
+            document.getElementById('userPwdGroup').style.display = 'block';
+            document.getElementById('userPassword').required = false;
+            document.getElementById('userModal').classList.add('show');
+        }
+        
+        function saveUser() {
+            var id = document.getElementById('userId').value;
+            var name = document.getElementById('userUsername').value.trim();
+            var pwd = document.getElementById('userPassword').value;
+            if (!name) { alert('请输入用户名'); return; }
+            
+            fetch(id ? '/admin/api/users/update' : '/admin/api/users/create', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, username: name, password: pwd })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.success) { showToast(d.message, 'success'); closeModal('userModal'); loadUsers(); loadStats(); }
+                else showToast(d.message, 'error');
+            });
+        }
+        
+        function deleteUser(id, name) {
+            if (!confirm('删除用户 "' + name + '"？')) return;
+            fetch('/admin/api/users/delete', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.success) { showToast(d.message, 'success'); loadUsers(); loadStats(); }
+                else showToast(d.message, 'error');
+            });
+        }
+        
+        function searchUsers() {
+            var kw = document.getElementById('userSearch').value.toLowerCase();
+            document.querySelectorAll('#userList .list-card').forEach(function(card) {
+                card.style.display = card.getAttribute('data-username').toLowerCase().includes(kw) ? '' : 'none';
+            });
+        }
+        
+        // === 房间 ===
+        function closeRoom(id, name) {
+            if (!confirm('关闭房间 "' + name + '"？')) return;
+            fetch('/admin/api/rooms/close', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.success) { showToast(d.message, 'success'); loadRooms(); loadStats(); }
+                else showToast(d.message, 'error');
+            });
+        }
+        
+        function deleteRoom(id, name) {
+            if (!confirm('删除房间 "' + name + '"？')) return;
+            fetch('/admin/api/rooms/delete', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.success) { showToast(d.message, 'success'); loadRooms(); loadStats(); }
+                else showToast(d.message, 'error');
+            });
+        }
+        
+        // === 管理员 ===
+        function showAddAdminModal() {
+            document.getElementById('adminModalTitle').textContent = '添加管理员';
+            document.getElementById('adminId').value = '';
+            document.getElementById('adminUsername').value = '';
+            document.getElementById('adminUsername').disabled = false;
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('adminPwdLabel').textContent = '密码';
+            document.getElementById('adminModal').classList.add('show');
+        }
+        
+        function editAdmin(id, name) {
+            document.getElementById('adminModalTitle').textContent = '修改密码';
+            document.getElementById('adminId').value = id;
+            document.getElementById('adminUsername').value = name;
+            document.getElementById('adminUsername').disabled = true;
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('adminPwdLabel').textContent = '新密码';
+            document.getElementById('adminModal').classList.add('show');
+        }
+        
+        function saveAdmin() {
+            var id = document.getElementById('adminId').value;
+            var name = document.getElementById('adminUsername').value.trim();
+            var pwd = document.getElementById('adminPassword').value;
+            if (!name || !pwd || pwd.length < 6) { alert('请完整填写'); return; }
+            
+            fetch(id ? '/admin/api/admins/update' : '/admin/api/admins/create', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, username: name, password: pwd })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.success) { showToast(d.message, 'success'); closeModal('adminModal'); document.getElementById('adminUsername').disabled = false; loadAdmins(); loadStats(); }
+                else showToast(d.message, 'error');
+            });
+        }
+        
+        function deleteAdmin(id, name) {
+            if (!confirm('删除管理员 "' + name + '"？')) return;
+            fetch('/admin/api/admins/delete', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.success) { showToast(d.message, 'success'); loadAdmins(); loadStats(); }
+                else showToast(d.message, 'error');
+            });
+        }
+        
+        // === 数据加载 ===
+        function loadUsers() {
+            fetch('/admin/api/users/list').then(function(r) { return r.json(); }).then(function(d) {
+                if (d.success) {
+                    var html = '';
+                    d.users.forEach(function(u) {
+                        html += '<div class="list-card" data-username="' + u.username + '"><div class="card-icon user">👤</div><div class="card-info"><div class="card-title">' + u.username + '</div><div class="card-sub">场次：' + u.total_games + ' · 胜场：' + u.wins + '</div></div><div class="card-actions"><button class="btn-sm btn-edit" onclick="editUser(' + u.id + ', \'' + u.username + '\')">编辑</button> <button class="btn-sm btn-delete" onclick="deleteUser(' + u.id + ', \'' + u.username + '\')">删除</button></div></div>';
+                    });
+                    document.getElementById('userList').innerHTML = html || '<div class="empty-state">暂无用户</div>';
+                }
+            });
+        }
+        
+        function loadRooms() {
+            fetch('/admin/api/rooms/list').then(function(r) { return r.json(); }).then(function(d) {
+                if (d.success) {
+                    var html = '';
+                    d.rooms.forEach(function(r) {
+                        var badge = '';
+                        if (r.status === 'waiting') badge = '<span class="card-badge badge-waiting">等待中</span>';
+                        else if (r.status === 'playing') badge = '<span class="card-badge badge-playing">游戏中</span>';
+                        else badge = '<span class="card-badge badge-finished">已结束</span>';
+                        var btns = '';
+                        if (r.status !== 'finished') btns += '<button class="btn-sm btn-close" onclick="closeRoom(' + r.id + ', \'' + r.room_name + '\')">关闭</button> ';
+                        btns += '<button class="btn-sm btn-delete" onclick="deleteRoom(' + r.id + ', \'' + r.room_name + '\')">删除</button>';
+                        html += '<div class="list-card"><div class="card-icon room">🏠</div><div class="card-info"><div class="card-title">' + r.room_name + ' <span style="font-size:11px;color:#999;">#' + r.id + '</span></div><div class="card-sub">房主：' + r.creator_name + ' · ' + r.player_count + '/' + r.max_players + '人</div></div>' + badge + '<div class="card-actions">' + btns + '</div></div>';
+                    });
+                    document.getElementById('roomList').innerHTML = html || '<div class="empty-state">暂无房间</div>';
+                }
+            });
+        }
+        
+        function loadAdmins() {
+            fetch('/admin/api/admins/list').then(function(r) { return r.json(); }).then(function(d) {
+                if (d.success) {
+                    var html = '';
+                    d.admins.forEach(function(a) {
+                        html += '<div class="list-card"><div class="card-icon admin">🔒</div><div class="card-info"><div class="card-title">' + a.username + '</div><div class="card-sub">创建：' + (a.created_at ? new Date(a.created_at).toLocaleString() : '-') + '</div></div><div class="card-actions"><button class="btn-sm btn-edit" onclick="editAdmin(' + a.id + ', \'' + a.username + '\')">改密</button> <button class="btn-sm btn-delete" onclick="deleteAdmin(' + a.id + ', \'' + a.username + '\')">删除</button></div></div>';
+                    });
+                    document.getElementById('adminList').innerHTML = html || '<div class="empty-state">暂无管理员</div>';
+                }
+            });
+        }
+        
+        function loadStats() {
+            fetch('/admin/api/stats').then(function(r) { return r.json(); }).then(function(d) {
+                if (d.success) {
+                    var vals = [d.stats.total_users, d.stats.total_rooms, d.stats.admin_count];
+                    document.querySelectorAll('.stat-value').forEach(function(el, i) {
+                        if (vals[i] !== undefined) el.textContent = vals[i];
+                    });
+                }
+            });
+        }
+        
+        window.onclick = function(e) { if (e.target.classList.contains('modal')) e.target.classList.remove('show'); }
+    </script>
+</body>
+</html>

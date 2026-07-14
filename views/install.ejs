@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>系统安装 - 计分系统 - 在线计分统计工具</title>
+    <meta name="keywords" content="计分系统,打牌计分,计分管理,游戏计分,在线计分,牌局计分">
+<meta name="description" content="计分系统 - 一款简单易用的在线计分工具，支持创建房间、多人计分、转让积分、历史记录查询，适合打牌、麻将、游戏等场景使用。">
+<meta name="author" content="计分系统">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="计分系统 - 在线计分统计工具">
+<meta property="og:description" content="简单易用的在线计分工具，支持多人房间、积分转让、历史记录。">
+<meta property="og:type" content="website">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page { width: 100%; max-width: 480px; }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .card h1 {
+            text-align: center;
+            font-size: 22px;
+            font-weight: 800;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .section {
+            background: #f8f9fa;
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 16px;
+        }
+        
+        .section h3 {
+            font-size: 15px;
+            color: #667eea;
+            margin-bottom: 14px;
+        }
+        
+        .form-group { margin-bottom: 12px; }
+        .form-group:last-child { margin-bottom: 0; }
+        
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 15px;
+            outline: none;
+        }
+        
+        .form-group input:focus { border-color: #667eea; }
+        
+        .row { display: flex; gap: 10px; }
+        .row .form-group { flex: 1; }
+        .row .form-group.port { max-width: 90px; flex: none; }
+        
+        .btn-test {
+            padding: 8px 16px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            cursor: pointer;
+            margin-bottom: 12px;
+        }
+        .btn-test:hover { background: #e0e0e0; }
+        
+        .test-result {
+            font-size: 12px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: none;
+        }
+        .test-result.test-success { background: #d4edda; color: #155724; display: block; }
+        .test-result.test-error { background: #f8d7da; color: #721c24; display: block; }
+        
+        .force-install {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e1e8ed;
+        }
+        
+        .force-install label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #666;
+            cursor: pointer;
+        }
+        
+        .force-install input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #856404;
+            display: none;
+        }
+        .warning-box.show { display: block; }
+        .warning-box strong { display: block; margin-bottom: 4px; }
+        
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: all 0.2s;
+        }
+        .btn-submit:active { transform: scale(0.97); }
+        .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        .alert {
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .alert-error { background: #f8d7da; color: #721c24; }
+        
+        .success-box {
+            text-align: center;
+            padding: 20px;
+        }
+        .success-box .icon {
+            font-size: 60px;
+            margin-bottom: 16px;
+        }
+        .success-box h2 {
+            font-size: 20px;
+            color: #28a745;
+            margin-bottom: 12px;
+        }
+        .success-box .info {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 14px;
+            margin: 16px 0;
+            text-align: left;
+        }
+        .success-box .info p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+        .success-box .info strong {
+            color: #333;
+        }
+        .success-box .tip {
+            font-size: 12px;
+            color: #999;
+            margin-top: 12px;
+        }
+        .success-box .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 700;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="card">
+            <h1>🎮 计分系统 - 安装向导</h1>
+            
+            <% if (error) { %>
+                <div class="alert alert-error"><%= error %></div>
+            <% } %>
+            
+            <% if (success) { %>
+                <div class="success-box">
+                    <div class="icon">✅</div>
+                    <h2>安装完成！</h2>
+                    <div class="info">
+                        <p>数据库：<strong><%= db_name %></strong></p>
+                        <p>管理员：<strong><%= admin_user %></strong></p>
+                        <p>请牢记管理员密码</p>
+                    </div>
+                    <p class="tip">系统已锁定安装，如需重新安装请先访问 /reinstall 解锁</p>
+                    <a href="/" class="btn">🚀 开始使用</a>
+                </div>
+            <% } else { %>
+                <form method="POST" action="/install" id="installForm" onsubmit="return handleSubmit()">
+                    <!-- 数据库配置 -->
+                    <div class="section">
+                        <h3>📦 数据库配置</h3>
+                        <div class="row">
+                            <div class="form-group">
+                                <label>主机地址</label>
+                                <input type="text" name="db_host" value="<%= db_host || 'localhost' %>" placeholder="localhost" required>
+                            </div>
+                            <div class="form-group port">
+                                <label>端口</label>
+                                <input type="text" name="db_port" value="<%= db_port || '3306' %>" placeholder="3306" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>数据库用户名</label>
+                            <input type="text" name="db_user" value="<%= db_user || 'root' %>" placeholder="root" required>
+                        </div>
+                        <div class="form-group">
+                            <label>数据库密码</label>
+                            <input type="password" name="db_password" placeholder="留空表示无密码">
+                        </div>
+                        <div class="form-group">
+                            <label>数据库名称</label>
+                            <input type="text" name="db_name" value="<%= db_name || 'card_game' %>" placeholder="card_game" required id="dbNameInput">
+                        </div>
+                        <button type="button" class="btn-test" onclick="testConnection()">🔍 测试数据库连接</button>
+                        <div id="testResult" class="test-result"></div>
+                    </div>
+                    
+                    <!-- 管理员账号 -->
+                    <div class="section">
+                        <h3>👤 管理员账号</h3>
+                        <div class="form-group">
+                            <label>管理员用户名</label>
+                            <input type="text" name="admin_user" value="<%= admin_user || 'admin' %>" placeholder="admin" required>
+                        </div>
+                        <div class="form-group">
+                            <label>管理员密码</label>
+                            <input type="password" name="admin_password" id="adminPassword" placeholder="至少6个字符" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label>确认密码</label>
+                            <input type="password" name="admin_password_confirm" id="adminPasswordConfirm" placeholder="再次输入密码" required minlength="6">
+                        </div>
+                    </div>
+                    
+                    <!-- 安装选项 -->
+                    <div class="section">
+                        <h3>⚙️ 安装选项</h3>
+                        <div class="force-install">
+                            <label>
+                                <input type="checkbox" name="force_install" id="forceInstall" onchange="toggleForce()">
+                                <span>⚠️ 强制重新安装（删除所有现有数据）</span>
+                            </label>
+                            <div class="warning-box" id="forceWarning">
+                                <strong>⚠️ 警告</strong>
+                                <strong>此操作将永久删除数据库 <id="warnDbName"><%= db_name || 'card_game' %> 中的所有数据！</strong>
+                                <strong>所有用户、房间、游戏记录将被清空，此操作不可恢复！</strong>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn-submit" id="submitBtn">🚀 开始安装</button>
+                </form>
+            <% } %>
+        </div>
+    </div>
+    
+    <script>
+        function toggleForce() {
+            var checked = document.getElementById('forceInstall').checked;
+            var warning = document.getElementById('forceWarning');
+            var btn = document.getElementById('submitBtn');
+            
+            warning.className = 'warning-box' + (checked ? ' show' : '');
+            btn.textContent = checked ? '⚠️ 确认强制重装' : '🚀 开始安装';
+            btn.style.background = checked 
+                ? 'linear-gradient(135deg, #f5576c, #ee5a24)' 
+                : 'linear-gradient(135deg, #667eea, #764ba2)';
+        }
+        
+        document.getElementById('dbNameInput').addEventListener('input', function() {
+            document.getElementById('warnDbName').textContent = this.value || 'card_game';
+        });
+        
+        function handleSubmit() {
+            var pwd = document.getElementById('adminPassword').value;
+            var confirm = document.getElementById('adminPasswordConfirm').value;
+            
+            if (pwd !== confirm) {
+                alert('两次输入的管理员密码不一致！');
+                return false;
+            }
+            if (pwd.length < 6) {
+                alert('管理员密码至少6个字符！');
+                return false;
+            }
+            
+            var forced = document.getElementById('forceInstall').checked;
+            if (forced) {
+                var dbName = document.getElementById('dbNameInput').value || 'card_game';
+                var confirmed = confirm(
+                    '⚠️ 确认强制重新安装？\n\n' +
+                    '此操作将删除数据库 ' + dbName + ' 中的所有数据！\n\n' +
+                    '此操作不可恢复！确定继续？'
+                );
+                if (!confirmed) return false;
+                
+                var input = prompt('请输入数据库名称 "' + dbName + '" 以确认：');
+                if (input !== dbName) {
+                    alert('数据库名称不匹配，操作已取消');
+                    return false;
+                }
+            }
+            
+            var btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.textContent = '正在安装...';
+            return true;
+        }
+        
+        async function testConnection() {
+            var resultDiv = document.getElementById('testResult');
+            resultDiv.className = 'test-result';
+            resultDiv.textContent = '⏳ 正在测试连接...';
+            resultDiv.style.display = 'block';
+            
+            var data = {
+                db_host: document.querySelector('input[name="db_host"]').value,
+                db_port: document.querySelector('input[name="db_port"]').value,
+                db_user: document.querySelector('input[name="db_user"]').value,
+                db_password: document.querySelector('input[name="db_password"]').value,
+                db_name: document.querySelector('input[name="db_name"]').value
+            };
+            
+            try {
+                var response = await fetch('/install/test-connection', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                var result = await response.json();
+                
+                resultDiv.className = 'test-result test-' + (result.success ? 'success' : 'error');
+                resultDiv.textContent = (result.success ? '✅ ' : '❌ ') + result.message;
+            } catch (error) {
+                resultDiv.className = 'test-result test-error';
+                resultDiv.textContent = '❌ 网络请求失败：' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

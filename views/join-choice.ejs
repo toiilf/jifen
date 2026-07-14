@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>加入房间 - 计分系统 - 在线计分统计工具</title>
+    <meta name="keywords" content="计分系统,打牌计分,计分管理,游戏计分,在线计分,牌局计分">
+<meta name="description" content="计分系统 - 一款简单易用的在线计分工具，支持创建房间、多人计分、转让积分、历史记录查询，适合打牌、麻将、游戏等场景使用。">
+<meta name="author" content="计分系统">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="计分系统 - 在线计分统计工具">
+<meta property="og:description" content="简单易用的在线计分工具，支持多人房间、积分转让、历史记录。">
+<meta property="og:type" content="website">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page { width: 100%; max-width: 380px; }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px 24px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .card .icon { font-size: 60px; margin-bottom: 16px; }
+        .card h2 { font-size: 20px; color: #333; margin-bottom: 8px; }
+        .card .sub { font-size: 13px; color: #999; margin-bottom: 24px; }
+        
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .btn:active { transform: scale(0.97); }
+        
+        .btn-login { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .btn-quick { background: #28a745; color: white; }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="card">
+            <div class="icon">🚪</div>
+            <h2>加入房间</h2>
+            <p class="sub">您还未登录，请选择加入方式</p>
+            
+            <button class="btn btn-login" onclick="goLogin()">🔑 登录后加入</button>
+            <button class="btn btn-quick" onclick="goQuick()">⚡ 免注册快速加入</button>
+        </div>
+    </div>
+    
+    <script>
+        var roomId = <%- roomId %>;
+        
+        function goLogin() {
+            location.href = '/auth/login?redirect=/join-room/' + roomId;
+        }
+        
+        function goQuick() {
+            fetch('/auth/quick-register', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' } 
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.success) {
+                    location.href = '/join-room/' + roomId + '/quick';
+                } else {
+                    alert(d.message);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

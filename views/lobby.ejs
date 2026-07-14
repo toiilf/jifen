@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>计分系统 - 在线计分统计工具</title>
+    <meta name="keywords" content="计分系统,打牌计分,计分管理,游戏计分,在线计分,牌局计分">
+<meta name="description" content="计分系统 - 一款简单易用的在线计分工具，支持创建房间、多人计分、转让积分、历史记录查询，适合打牌、麻将、游戏等场景使用。">
+<meta name="author" content="计分系统">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="计分系统 - 在线计分统计工具">
+<meta property="og:description" content="简单易用的在线计分工具，支持多人房间、积分转让、历史记录。">
+<meta property="og:type" content="website">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 12px;
+        }
+        
+        .page { width: 100%; max-width: 600px; margin: 0 auto; padding-bottom: 30px; }
+        
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 14px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .header .logo {
+            font-size: 20px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header .user-row { display: flex; align-items: center; gap: 14px; }
+        .header .user-row a { text-decoration: none; font-size: 13px; font-weight: 500; }
+        
+        .big-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        
+        .big-card {
+            border-radius: 20px;
+            padding: 24px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.15s;
+            font-weight: 700;
+        }
+        .big-card:active { transform: scale(0.97); }
+        
+        .card-create {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 6px 25px rgba(0,0,0,0.15);
+        }
+        .card-create .icon { font-size: 42px; margin-bottom: 8px; }
+        .card-create .title { font-size: 18px; }
+        .card-create .sub { font-size: 12px; color: #999; font-weight: 400; margin-top: 4px; }
+        
+        .card-join {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 6px 25px rgba(102,126,234,0.4);
+        }
+        .card-join .icon { font-size: 42px; margin-bottom: 8px; }
+        .card-join .title { font-size: 18px; }
+        .card-join .sub { font-size: 12px; opacity: 0.8; font-weight: 400; margin-top: 4px; }
+        
+        .section-title { color: white; font-size: 15px; font-weight: 700; margin: 16px 0 8px; }
+        .room-list { display: flex; flex-direction: column; gap: 8px; }
+        
+        .room-entry {
+            background: rgba(255,255,255,0.95);
+            border-radius: 14px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .room-entry .room-icon { font-size: 26px; min-width: 32px; text-align: center; cursor: pointer; }
+        .room-entry .room-info { flex: 1; min-width: 0; cursor: pointer; }
+        .room-entry .room-name { font-size: 14px; font-weight: 600; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .room-entry .room-meta { font-size: 11px; color: #999; margin-top: 2px; }
+        
+        .room-entry .room-btn {
+            border: none; padding: 6px 14px; border-radius: 14px;
+            font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+        }
+        .btn-dismiss { background: #ff4757; color: white; }
+        .btn-leave { background: #ff6348; color: white; }
+        
+        .modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 100;
+            display: none; justify-content: center; align-items: center;
+        }
+        .modal.show { display: flex; }
+        
+        .modal-content {
+            background: white; border-radius: 20px; padding: 24px 20px;
+            width: 90%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .modal-content h3 { font-size: 20px; margin-bottom: 18px; text-align: center; color: #333; }
+        .modal-content .form-group { margin-bottom: 14px; }
+        .modal-content label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; font-weight: 600; }
+        .modal-content input, .modal-content select {
+            width: 100%; padding: 12px 14px; border: 2px solid #e1e8ed;
+            border-radius: 12px; font-size: 16px; outline: none;
+        }
+        .modal-content input:focus, .modal-content select:focus { border-color: #667eea; }
+        
+        .modal-content .btn {
+            width: 100%; padding: 14px; border: none; border-radius: 12px;
+            font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 6px;
+        }
+        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .btn-secondary { background: #f0f0f0; color: #666; }
+        .btn-save { background: #28a745; color: white; }
+        
+        @media (max-width: 420px) {
+            .big-cards { grid-template-columns: 1fr; }
+            .big-card { padding: 20px 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <span class="logo">🎮 计分系统</span>
+            <div class="user-row">
+                <a href="/history" style="color:#999;">📊 记录</a>
+                <a href="/profile" style="color:#999;">👤 <%= user.nickname %></a>
+                <a href="/auth/logout" style="color:#ff4757;">退出</a>
+            </div>
+        </div>
+        
+        <div class="big-cards">
+            <div class="big-card card-create" onclick="showCreateModal()">
+                <div class="icon">🏠</div>
+                <div class="title">创建房间</div>
+                <div class="sub">创建新房间，邀请好友加入</div>
+            </div>
+            <div class="big-card card-join" onclick="showJoinModal()">
+                <div class="icon">🔍</div>
+                <div class="title">加入房间</div>
+                <div class="sub">输入房间名称加入已有房间</div>
+            </div>
+        </div>
+        
+        <div id="myRoomsSection" style="display:none;">
+            <div class="section-title">🏠 我创建的房间</div>
+            <div class="room-list" id="myRoomList"></div>
+        </div>
+        
+        <div id="joinedRoomsSection" style="display:none;">
+            <div class="section-title">🚪 我已加入的房间</div>
+            <div class="room-list" id="joinedRoomList"></div>
+        </div>
+    </div>
+    
+    <div class="modal" id="createModal">
+        <div class="modal-content">
+            <h3>🏠 创建房间</h3>
+            <div class="form-group">
+                <label>房间名称</label>
+                <input type="text" id="roomName" placeholder="输入房间名称" maxlength="30">
+            </div>
+            <div class="form-group">
+                <label>房间密码（留空为公开）</label>
+                <input type="text" id="roomPassword" placeholder="可选">
+            </div>
+            <div class="form-group">
+                <label>最大人数</label>
+                <select id="maxPlayers">
+                    <option value="2">2人</option><option value="3">3人</option>
+                    <option value="4" selected>4人</option><option value="5">5人</option>
+                    <option value="6">6人</option><option value="7">7人</option><option value="8">8人</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="createRoom()">创建</button>
+            <button class="btn btn-secondary" onclick="closeModal('createModal')">取消</button>
+        </div>
+    </div>
+    
+    <div class="modal" id="joinModal">
+        <div class="modal-content">
+            <h3>🔍 加入房间</h3>
+            <div class="form-group">
+                <label>房间名称</label>
+                <input type="text" id="joinRoomName" placeholder="输入房间名称">
+            </div>
+            <div class="form-group">
+                <label>密码（无密码留空）</label>
+                <input type="text" id="joinPassword" placeholder="可选">
+            </div>
+            <button class="btn btn-primary" onclick="joinRoom()">加入</button>
+            <button class="btn btn-secondary" onclick="closeModal('joinModal')">取消</button>
+        </div>
+    </div>
+    
+    <% if (showGuide) { %>
+    <div class="modal show" id="editModal">
+        <div class="modal-content">
+            <h3>✏️ 修改资料</h3>
+            <p style="text-align:center;font-size:13px;color:#999;margin-bottom:16px;">系统已为您生成账号，建议修改</p>
+            <div class="form-group">
+                <label>昵称</label>
+                <input type="text" id="newNickname" value="<%= user.nickname %>" maxlength="20">
+            </div>
+            <div class="form-group">
+                <label>密码（留空不修改）</label>
+                <input type="password" id="newPassword" placeholder="123456" minlength="6">
+            </div>
+            <button class="btn btn-save" onclick="saveProfile()">💾 保存</button>
+            <button class="btn btn-secondary" onclick="closeEditModal()" style="margin-top:6px;">跳过</button>
+        </div>
+    </div>
+    <% } %>
+    
+    <script>
+        function showCreateModal() { document.getElementById('createModal').classList.add('show'); document.getElementById('roomName').focus(); }
+        function showJoinModal() { document.getElementById('joinModal').classList.add('show'); document.getElementById('joinRoomName').focus(); }
+        
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
+            if (id === 'createModal') { document.getElementById('roomName').value = ''; document.getElementById('roomPassword').value = ''; }
+            if (id === 'joinModal') { document.getElementById('joinRoomName').value = ''; document.getElementById('joinPassword').value = ''; }
+        }
+        
+        function createRoom() {
+            var name = document.getElementById('roomName').value.trim();
+            if (!name) { alert('请输入房间名称'); return; }
+            fetch('/lobby/create-room', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ room_name: name, password: document.getElementById('roomPassword').value.trim(), max_players: parseInt(document.getElementById('maxPlayers').value) })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) { if (d.success) location.href = '/room/' + d.room_id; else alert(d.message); });
+        }
+        
+        function joinRoom() {
+            var name = document.getElementById('joinRoomName').value.trim();
+            if (!name) { alert('请输入房间名称'); return; }
+            fetch('/lobby/join-room', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ room_name: name, password: document.getElementById('joinPassword').value.trim() })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) { if (d.success) { closeModal('joinModal'); location.href = '/room/' + d.room_id; } else alert(d.message); });
+        }
+        
+        function enterRoom(id) { location.href = '/room/' + id; }
+        
+        function leaveRoom(roomId) {
+            if (!confirm('确定退出该房间？')) return;
+            fetch('/lobby/leave-room', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ room_id: roomId }) })
+                .then(function(r) { return r.json(); })
+                .then(function(d) { if (d.success) loadMyRooms(); else alert(d.message); });
+        }
+        
+        function dismissRoom(roomId) {
+            if (!confirm('确定解散该房间？')) return;
+            fetch('/lobby/dismiss-room', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ room_id: roomId }) })
+                .then(function(r) { return r.json(); })
+                .then(function(d) { if (d.success) loadMyRooms(); else alert(d.message); });
+        }
+        
+        function loadMyRooms() {
+            fetch('/lobby/my-rooms').then(function(r) { return r.json(); }).then(function(d) {
+                var section = document.getElementById('myRoomsSection');
+                if (d.success && d.rooms && d.rooms.length > 0) {
+                    section.style.display = 'block';
+                    var html = '';
+                    for (var i = 0; i < d.rooms.length; i++) {
+                        var room = d.rooms[i];
+                        html += '<div class="room-entry"><div class="room-icon" onclick="enterRoom(' + room.id + ')">🏠</div><div class="room-info" onclick="enterRoom(' + room.id + ')"><div class="room-name">' + room.room_name + '</div><div class="room-meta">' + room.player_count + '/' + room.max_players + '人' + (room.password ? ' · 🔒' : '') + '</div></div><button class="room-btn btn-dismiss" data-action="dismiss" data-room="' + room.id + '">解散</button></div>';
+                    }
+                    document.getElementById('myRoomList').innerHTML = html;
+                    bindButtons();
+                } else { section.style.display = 'none'; }
+            });
+            
+            fetch('/lobby/joined-rooms').then(function(r) { return r.json(); }).then(function(d) {
+                var section = document.getElementById('joinedRoomsSection');
+                if (d.success && d.rooms && d.rooms.length > 0) {
+                    section.style.display = 'block';
+                    var html = '';
+                    for (var i = 0; i < d.rooms.length; i++) {
+                        var room = d.rooms[i];
+                        html += '<div class="room-entry"><div class="room-icon" onclick="enterRoom(' + room.id + ')">🚪</div><div class="room-info" onclick="enterRoom(' + room.id + ')"><div class="room-name">' + room.room_name + '</div><div class="room-meta">房主：' + room.creator_name + ' · ' + room.player_count + '/' + room.max_players + '人</div></div><button class="room-btn btn-leave" data-action="leave" data-room="' + room.id + '">退出</button></div>';
+                    }
+                    document.getElementById('joinedRoomList').innerHTML = html;
+                    bindButtons();
+                } else { section.style.display = 'none'; }
+            });
+        }
+        
+        function bindButtons() {
+            var buttons = document.querySelectorAll('.room-btn');
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].onclick = function(e) {
+                    e.stopPropagation(); e.preventDefault();
+                    var action = this.getAttribute('data-action');
+                    var roomId = parseInt(this.getAttribute('data-room'));
+                    if (action === 'dismiss') dismissRoom(roomId);
+                    if (action === 'leave') leaveRoom(roomId);
+                    return false;
+                };
+            }
+        }
+        
+        function closeEditModal() { document.getElementById('editModal').classList.remove('show'); }
+        
+        function saveProfile() {
+            var nickname = document.getElementById('newNickname').value.trim();
+            var password = document.getElementById('newPassword').value;
+            if (!nickname) { alert('昵称不能为空'); return; }
+            if (nickname.length < 2) { alert('昵称至少2个字符'); return; }
+            if (password && password.length < 6) { alert('至少6个字符'); return; }
+            
+            fetch('/profile/update-all', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nickname: nickname, password: password })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.success) { alert('修改成功！'); closeEditModal(); location.reload(); }
+                else alert(d.message);
+            });
+        }
+        
+        window.onclick = function(e) { if (e.target.classList.contains('modal') && e.target.id === 'editModal') return; if (e.target.classList.contains('modal')) e.target.classList.remove('show'); }
+        
+        loadMyRooms();
+        setInterval(loadMyRooms, 5000);
+    </script>
+</body>
+</html>
