@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>房间号：<%= title %> - 计分系统 - 在线计分统计工具</title>
+    <title>房间号：<%= room.id %> - 计分系统 - 在线计分统计工具</title>
     <meta name="keywords" content="计分系统,打牌计分,计分管理,游戏计分,在线计分,牌局计分">
-<meta name="description" content="计分系统 - 一款简单易用的在线计分工具，支持创建房间、多人计分、转让积分、历史记录查询，适合打牌、麻将、游戏等场景使用。">
-<meta name="author" content="计分系统">
-<meta name="robots" content="index, follow">
-<meta property="og:title" content="计分系统 - 在线计分统计工具">
-<meta property="og:description" content="简单易用的在线计分工具，支持多人房间、积分转让、历史记录。">
-<meta property="og:type" content="website">
+    <meta name="description" content="计分系统 - 一款简单易用的在线计分工具，支持创建房间、多人计分、转让积分、历史记录查询，适合打牌、麻将、游戏等场景使用。">
+    <meta name="author" content="计分系统">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="计分系统 - 在线计分统计工具">
+    <meta property="og:description" content="简单易用的在线计分工具，支持多人房间、积分转让、历史记录。">
+    <meta property="og:type" content="website">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -37,7 +37,10 @@
         .header h1 {
             font-size: 18px; font-weight: 700; color: #333;
             overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
+            cursor: pointer; transition: color 0.2s;
         }
+        
+        .header h1:hover { color: #667eea; }
         
         .header .count {
             background: #667eea; color: white;
@@ -200,6 +203,11 @@
         .btn-secondary { background: #f0f0f0; color: #666; }
         .btn-save { background: #28a745; color: white; }
         
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        
         @media (max-width: 360px) {
             .panel { padding: 14px 10px 16px; }
             .panel h3 { font-size: 15px; }
@@ -216,13 +224,13 @@
 <body>
     <div class="page">
         <div class="header">
-            <h1>房间：<%= room.room_name %></h1>
+            <h1 onclick="copyRoomName()" title="点击复制房间名称">房间：<%= room.room_name %></h1>
             <span class="count"><%= otherPlayers.length + 1 %>/<%= room.max_players %>人</span>
             <a href="/lobby" class="btn-back">返回大厅</a>
         </div>
         
         <div class="my-card">
-            <div class="avatar"><%= myPlayer.nickname ? myPlayer.nickname.charAt(0).toUpperCase() : '我' %></div>
+            <div class="avatar"><%= myPlayer.nickname ? myPlayer.nickname.charAt(myPlayer.nickname.length - 1) : '我' %></div>
             <div class="my-info">
                 <div class="name">
                     <%= myPlayer.nickname || user.nickname %> (我)
@@ -238,7 +246,7 @@
             <% if (otherPlayers.length > 0) { %>
                 <% otherPlayers.forEach(function(p) { %>
                     <div class="player" id="player-<%= p.user_id %>" onclick="selectPlayer(<%= p.user_id %>, '<%= p.nickname.replace(/'/g, "\\'") %>')">
-                        <div class="p-avatar"><%= p.nickname.charAt(0).toUpperCase() %></div>
+                        <div class="p-avatar"><%= p.nickname.charAt(p.nickname.length - 1) %></div>
                         <div class="p-info">
                             <div class="p-name">
                                 <%= p.nickname %>
@@ -262,7 +270,7 @@
                         <div class="record">
                             <div>
                                 <span class="r-from"><%= t.from_nickname %></span> → <span class="r-to"><%= t.to_nickname %></span>
-                                <div class="r-time"><%= moment(t.created_at).tz('Asia/Shanghai').format('HH:mm:ss') %></div>
+                                <div class="r-time"><%= moment(t.created_at).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss') %></div>
                             </div>
                             <div class="r-amount"><%= t.amount %> 分</div>
                         </div>
@@ -321,9 +329,15 @@
         function connectWS() {
             var p = location.protocol === 'https:' ? 'wss:' : 'ws:';
             ws = new WebSocket(p + '//' + location.host);
-            ws.onopen = function() { ws.send(JSON.stringify({ type: 'join_room', room_id: roomId, user_id: userId })); };
-            ws.onmessage = function() { refreshData(); };
-            ws.onclose = function() { setTimeout(connectWS, 3000); };
+            ws.onopen = function() { 
+                ws.send(JSON.stringify({ type: 'join_room', room_id: roomId, user_id: userId })); 
+            };
+            ws.onmessage = function(event) {
+                refreshData();
+            };
+            ws.onclose = function() { 
+                setTimeout(connectWS, 3000); 
+            };
         }
         
         function selectPlayer(id, name) {
@@ -374,7 +388,7 @@
                 for (var i = 0; i < d.players.length; i++) {
                     var p = d.players[i];
                     if (p.user_id === userId) continue;
-                    html += '<div class="player" id="player-' + p.user_id + '" onclick="selectPlayer(' + p.user_id + ', \'' + p.nickname.replace(/'/g, "\\'") + '\')"><div class="p-avatar">' + p.nickname.charAt(0).toUpperCase() + '</div><div class="p-info"><div class="p-name">' + p.nickname;
+                    html += '<div class="player" id="player-' + p.user_id + '" onclick="selectPlayer(' + p.user_id + ', \'' + p.nickname.replace(/'/g, "\\'") + '\')"><div class="p-avatar">' + p.nickname.charAt(p.nickname.length - 1) + '</div><div class="p-info"><div class="p-name">' + p.nickname;
                     if (p.user_id === d.room.creator_id) html += ' <span class="owner-tag">👑 房主</span>';
                     html += '</div><div class="p-hint">点击转让积分</div></div><div class="p-score">' + (p.current_score || 0) + ' <span>分</span></div></div>';
                 }
@@ -388,12 +402,40 @@
                     var rh = '';
                     for (var j = 0; j < d.transfers.length; j++) {
                         var t = d.transfers[j];
-                        var time = new Date(t.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                        var date = new Date(t.created_at);
+                        var time = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0') + ' ' + String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0') + ':' + String(date.getSeconds()).padStart(2, '0');
                         rh += '<div class="record"><div><span class="r-from">' + t.from_nickname + '</span> → <span class="r-to">' + t.to_nickname + '</span><div class="r-time">' + time + '</div></div><div class="r-amount">' + t.amount + ' 分</div></div>';
                     }
                     rec.innerHTML = rh;
                 }
             });
+        }
+        
+        function copyRoomName() {
+            var roomName = '<%= room.room_name.replace(/'/g, "\\'") %>';
+            var tempInput = document.createElement('input');
+            tempInput.value = roomName;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand('copy');
+                showToast('✅ 房间名称已复制：' + roomName);
+            } catch (err) {
+                prompt('房间名称：', roomName);
+            }
+            document.body.removeChild(tempInput);
+        }
+        
+        function showToast(message) {
+            var toast = document.createElement('div');
+            toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:12px;background:#28a745;color:white;font-weight:600;z-index:300;font-size:14px;white-space:nowrap;animation:fadeIn 0.3s ease;';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(function() { 
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(function() { toast.remove(); }, 300);
+            }, 2000);
         }
         
         function copyShareLink() {
@@ -402,8 +444,8 @@
             tempInput.value = shareUrl;
             document.body.appendChild(tempInput);
             tempInput.select();
-            try { document.execCommand('copy'); alert('链接已复制！\n' + shareUrl); }
-            catch (err) { prompt('请手动复制以下链接：', shareUrl); }
+            try { document.execCommand('copy'); showToast('✅ 链接已复制'); }
+            catch (err) { prompt('请手动复制：', shareUrl); }
             document.body.removeChild(tempInput);
         }
         
@@ -441,7 +483,7 @@
         }
         
         connectWS();
-        setInterval(refreshData, 5000);
+        setInterval(refreshData, 1000);
     </script>
 </body>
 </html>

@@ -212,7 +212,7 @@
         
         <!-- 个人信息卡片 -->
         <div class="profile-card">
-            <div class="avatar"><%= user.nickname.charAt(0).toUpperCase() %></div>
+            <div class="avatar"><%= user.nickname.charAt(user.nickname.length - 1) %></div>
             <div class="info">
                 <div class="nickname"><%= user.nickname %></div>
                 <div class="username">@<%= user.username %></div>
