@@ -123,6 +123,22 @@ function broadcastToRoom(roomId, data) {
     }
 }
 
+// 定期发送心跳，保持 WebSocket 连接活跃（防止 Render 休眠）
+setInterval(() => {
+    if (rooms.size > 0) {
+        // 只向有客户的房间发送心跳
+        rooms.forEach((clients, roomId) => {
+            broadcastToRoom(roomId, {
+                type: 'ping',
+                timestamp: new Date().toISOString()
+            });
+        });
+        console.log(`💓 心跳已发送，当前活跃房间: ${rooms.size}`);
+    }
+}, 25000); // 每25秒发送一次
+
+// ==================== 👆 心跳代码结束 ====================
+
 // 路由
 const indexRoutes = require('./routes/index');
 const authRoutes = require('./routes/auth');
