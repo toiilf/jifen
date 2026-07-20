@@ -28,13 +28,11 @@ router.get('/', async (req, res) => {
     }
 });
 
-// 通过分享链接加入房间
 router.get('/join-room/:roomId', async (req, res) => {
     if (!isInstalled()) return res.redirect('/install');
     
     var roomId = req.params.roomId;
     
-    // 已登录直接加入
     if (req.session.user) {
         var userId = req.session.user.id;
         
@@ -48,9 +46,7 @@ router.get('/join-room/:roomId', async (req, res) => {
             
             var room = rooms[0][0];
             var existingPlayer = await db.query('SELECT id FROM room_players WHERE room_id = ? AND user_id = ?', [roomId, userId]);
-            if (existingPlayer[0].length > 0) {
-                return res.redirect('/room/' + roomId);
-            }
+            if (existingPlayer[0].length > 0) return res.redirect('/room/' + roomId);
             
             var players = await db.query('SELECT COUNT(*) as count FROM room_players WHERE room_id = ?', [roomId]);
             if (players[0][0].count >= room.max_players) {
@@ -66,14 +62,9 @@ router.get('/join-room/:roomId', async (req, res) => {
         }
     }
     
-    // 未登录，显示选择页面
-    res.render('join-choice', {
-        title: '加入房间',
-        roomId: roomId
-    });
+    res.render('join-choice', { title: '加入房间', roomId: roomId });
 });
 
-// 快速进入后自动加入房间
 router.get('/join-room/:roomId/quick', async (req, res) => {
     if (!isInstalled()) return res.redirect('/install');
     if (!req.session.user) return res.redirect('/join-room/' + req.params.roomId);
@@ -85,20 +76,14 @@ router.get('/join-room/:roomId/quick', async (req, res) => {
         var db = require('../db');
         var rooms = await db.query("SELECT * FROM rooms WHERE id = ? AND status != 'finished'", [roomId]);
         
-        if (rooms[0].length === 0) {
-            return res.render('error', { title: '错误', message: '房间不存在或已关闭' });
-        }
+        if (rooms[0].length === 0) return res.render('error', { title: '错误', message: '房间不存在或已关闭' });
         
         var room = rooms[0][0];
         var existingPlayer = await db.query('SELECT id FROM room_players WHERE room_id = ? AND user_id = ?', [roomId, userId]);
-        if (existingPlayer[0].length > 0) {
-            return res.redirect('/room/' + roomId);
-        }
+        if (existingPlayer[0].length > 0) return res.redirect('/room/' + roomId);
         
         var players = await db.query('SELECT COUNT(*) as count FROM room_players WHERE room_id = ?', [roomId]);
-        if (players[0][0].count >= room.max_players) {
-            return res.render('error', { title: '错误', message: '房间已满' });
-        }
+        if (players[0][0].count >= room.max_players) return res.render('error', { title: '错误', message: '房间已满' });
         
         var maxSeat = await db.query('SELECT COALESCE(MAX(seat_number), 0) + 1 as next_seat FROM room_players WHERE room_id = ?', [roomId]);
         await db.query('INSERT INTO room_players (room_id, user_id, seat_number) VALUES (?, ?, ?)', [roomId, userId, maxSeat[0][0].next_seat]);
@@ -110,7 +95,6 @@ router.get('/join-room/:roomId/quick', async (req, res) => {
     }
 });
 
-// 安装页面
 router.get('/install', (req, res) => {
     if (isInstalled()) return res.redirect('/');
     
@@ -136,10 +120,22 @@ router.get('/install', (req, res) => {
 });
 
 router.post('/install/test-connection', async (req, res) => {
-    var { db_host, db_port, db_user, db_password, db_name } = req.body;
+    var { db_host, db_port, db_user, db_password, db_name, db_ssl } = req.body;
+    
+    var dbConfig = {
+        host: db_host,
+        port: parseInt(db_port) || 3306,
+        user: db_user,
+        password: db_password
+    };
+    
+    if (db_ssl) {
+        dbConfig.ssl = { rejectUnauthorized: false };
+    }
+    
     try {
         var mysql = require('mysql2/promise');
-        var connection = await mysql.createConnection({ host: db_host, port: parseInt(db_port) || 3306, user: db_user, password: db_password });
+        var connection = await mysql.createConnection(dbConfig);
         var databases = await connection.query('SHOW DATABASES LIKE ?', [db_name]);
         var dbExists = databases[0].length > 0;
         await connection.end();
@@ -152,14 +148,26 @@ router.post('/install/test-connection', async (req, res) => {
 router.post('/install', async (req, res) => {
     if (isInstalled() && !req.body.force_install) return res.redirect('/');
     
-    var { db_host, db_port, db_user, db_password, db_name, admin_user, admin_password, admin_password_confirm, force_install } = req.body;
+    var { db_host, db_port, db_user, db_password, db_name, admin_user, admin_password, admin_password_confirm, force_install, db_ssl } = req.body;
     
     if (admin_password !== admin_password_confirm) return res.redirect('/install?error=' + encodeURIComponent('两次密码不一致'));
     if (admin_password.length < 6) return res.redirect('/install?error=' + encodeURIComponent('密码至少6个字符'));
     
+    var dbConfig = {
+        host: db_host,
+        port: parseInt(db_port) || 3306,
+        user: db_user,
+        password: db_password,
+        multipleStatements: true
+    };
+    
+    if (db_ssl) {
+        dbConfig.ssl = { rejectUnauthorized: false };
+    }
+    
     try {
         var mysql = require('mysql2/promise');
-        var connection = await mysql.createConnection({ host: db_host, port: parseInt(db_port) || 3306, user: db_user, password: db_password, multipleStatements: true });
+        var connection = await mysql.createConnection(dbConfig);
         
         if (force_install) await connection.query('DROP DATABASE IF EXISTS `' + db_name + '`');
         await connection.query('CREATE DATABASE IF NOT EXISTS `' + db_name + '` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
@@ -181,13 +189,16 @@ router.post('/install', async (req, res) => {
         }
         
         var sessionSecret = crypto.randomBytes(32).toString('hex');
-        var envContent = 'DB_HOST=' + db_host + '\nDB_PORT=' + (db_port || 3306) + '\nDB_USER=' + db_user + '\nDB_PASSWORD=' + db_password + '\nDB_NAME=' + db_name + '\nSESSION_SECRET=' + sessionSecret + '\nPORT=3000\nTIMEZONE=Asia/Shanghai\n';
+        var envContent = 'DB_HOST=' + db_host + '\nDB_PORT=' + (db_port || 3306) + '\nDB_USER=' + db_user + '\nDB_PASSWORD=' + db_password + '\nDB_NAME=' + db_name + '\n';
+        if (db_ssl) envContent += 'DB_SSL=true\n';
+        envContent += 'SESSION_SECRET=' + sessionSecret + '\nPORT=3000\nTIMEZONE=Asia/Shanghai\n';
+        
         fs.writeFileSync(path.join(__dirname, '..', '.env'), envContent);
         fs.writeFileSync(path.join(__dirname, '..', '.installed'), 'installed');
         
         await connection.end();
         
-        return res.render('install', { title: '系统安装', error: null, success: '安装完成！', admin_user: admin_user, db_host: db_host, db_port: db_port, db_user: db_user, db_name: db_name });
+        return res.render('install', { title: '系统安装', error: null, success: '安装完成！', admin_user: admin_user, db_name: db_name });
     } catch (error) {
         console.error('Install error:', error);
         return res.redirect('/install?error=' + encodeURIComponent('安装失败：' + error.message));
