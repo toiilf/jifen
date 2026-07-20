@@ -3,14 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>系统安装 - 计分系统 - 在线计分统计工具</title>
+    <title>系统安装 - 计分系统</title>
     <meta name="keywords" content="计分系统,打牌计分,计分管理,游戏计分,在线计分,牌局计分">
-<meta name="description" content="计分系统 - 一款简单易用的在线计分工具，支持创建房间、多人计分、转让积分、历史记录查询，适合打牌、麻将、游戏等场景使用。">
-<meta name="author" content="计分系统">
-<meta name="robots" content="index, follow">
-<meta property="og:title" content="计分系统 - 在线计分统计工具">
-<meta property="og:description" content="简单易用的在线计分工具，支持多人房间、积分转让、历史记录。">
-<meta property="og:type" content="website">
+    <meta name="description" content="计分系统 - 一款简单易用的在线计分工具，支持创建房间、多人计分、转让积分、历史记录查询，适合打牌、麻将、游戏等场景使用。">
+    <meta name="robots" content="noindex, nofollow">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -82,6 +78,27 @@
         .row { display: flex; gap: 10px; }
         .row .form-group { flex: 1; }
         .row .form-group.port { max-width: 90px; flex: none; }
+        
+        .ssl-option {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e1e8ed;
+        }
+        
+        .ssl-option label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #666;
+            cursor: pointer;
+        }
+        
+        .ssl-option input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
         
         .btn-test {
             padding: 8px 16px;
@@ -258,6 +275,14 @@
                             <label>数据库名称</label>
                             <input type="text" name="db_name" value="<%= db_name || 'card_game' %>" placeholder="card_game" required id="dbNameInput">
                         </div>
+                        
+                        <div class="ssl-option">
+                            <label>
+                                <input type="checkbox" name="db_ssl" id="dbSsl">
+                                🔒 启用 SSL 连接（使用云数据库或需要安全连接时勾选）
+                            </label>
+                        </div>
+                        
                         <button type="button" class="btn-test" onclick="testConnection()">🔍 测试数据库连接</button>
                         <div id="testResult" class="test-result"></div>
                     </div>
@@ -289,8 +314,8 @@
                             </label>
                             <div class="warning-box" id="forceWarning">
                                 <strong>⚠️ 警告</strong>
-                                <strong>此操作将永久删除数据库 <id="warnDbName"><%= db_name || 'card_game' %> 中的所有数据！</strong>
-                                <strong>所有用户、房间、游戏记录将被清空，此操作不可恢复！</strong>
+                                此操作将<strong>永久删除</strong>数据库 <strong id="warnDbName"><%= db_name || 'card_game' %></strong> 中的所有数据！<br>
+                                所有用户、房间、游戏记录将被清空，此操作不可恢复！
                             </div>
                         </div>
                     </div>
@@ -365,7 +390,8 @@
                 db_port: document.querySelector('input[name="db_port"]').value,
                 db_user: document.querySelector('input[name="db_user"]').value,
                 db_password: document.querySelector('input[name="db_password"]').value,
-                db_name: document.querySelector('input[name="db_name"]').value
+                db_name: document.querySelector('input[name="db_name"]').value,
+                db_ssl: document.getElementById('dbSsl').checked
             };
             
             try {
